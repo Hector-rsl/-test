@@ -1,10 +1,765 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Test App</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReceiptIQ กX Financial Twin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0c0e;--surface:#141417;--surface2:#1a1a1f;--surface3:#222228;--surface4:#2c2c34;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+  --text:#f2f0eb;--muted:#7a7870;--faint:#3a3835;
+  --gold:#e9c46a;--gold2:#f4a261;--green:#52b788;--red:#e76f51;
+  --blue:#74b3ce;--purple:#b5a8f5;--teal:#4ecdc4;--pink:#f06a9e;
+  --r:14px;--r-lg:20px;
+}
+html{background:var(--bg);color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:15px}
+body{min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+
+/* layout */
+.shell{display:grid;grid-template-columns:72px 1fr;min-height:100vh}
+
+/* sidebar */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:24px 0;gap:6px;position:sticky;top:0;height:100vh}
+.sidebar-logo{width:38px;height:38px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:28px;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#0c0c0e;flex-shrink:0;cursor:pointer}
+.nav-btn{width:44px;height:44px;border-radius:12px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .15s;position:relative}
+.nav-btn:hover{background:var(--surface2);color:var(--text)}
+.nav-btn.active{background:rgba(233,196,106,.12);color:var(--gold)}
+.nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:6px}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#0c0c0e;cursor:pointer;transition:transform .15s}
+.avatar:hover{transform:scale(1.07)}
+
+/* main */
+.main{overflow-y:auto;padding:0 0 80px}
+
+/* ขwขw TWIN HERO ขwขw */
+.twin-hero{padding:48px 48px 0;position:relative;overflow:hidden}
+.twin-hero-bg{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.twin-hero-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.12}
+.twin-hero-orb.o1{width:400px;height:400px;background:var(--purple);top:-100px;right:-80px}
+.twin-hero-orb.o2{width:300px;height:300px;background:var(--gold);bottom:-50px;left:-60px}
+.twin-hero-orb.o3{width:200px;height:200px;background:var(--teal);top:50px;left:30%}
+.twin-eyebrow{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--purple);margin-bottom:12px;display:flex;align-items:center;gap:8px;opacity:0;animation:fadeUp .5s .05s ease forwards}
+.twin-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--purple);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+.twin-hero-content{display:grid;grid-template-columns:1fr auto;gap:40px;align-items:center;padding-bottom:40px;border-bottom:1px solid var(--border);opacity:0;animation:fadeUp .5s .1s ease forwards}
+.twin-title{font-family:'Syne',sans-serif;font-size:42px;font-weight:800;letter-spacing:-1.5px;line-height:1.05;margin-bottom:12px}
+.twin-title .name{color:var(--gold)}
+.twin-title .type{color:var(--purple)}
+.twin-subtitle{font-size:15px;color:var(--muted);font-weight:300;line-height:1.6;max-width:520px;margin-bottom:24px}
+.twin-subtitle em{color:var(--text);font-style:normal;font-weight:400}
+.twin-persona-tags{display:flex;gap:8px;flex-wrap:wrap}
+.persona-tag{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:40px;font-size:12px;font-weight:500;border:1px solid}
+.persona-tag.impulse{background:rgba(244,162,97,.08);border-color:rgba(244,162,97,.25);color:var(--gold2)}
+.persona-tag.homecook{background:rgba(82,183,136,.08);border-color:rgba(82,183,136,.25);color:var(--green)}
+.persona-tag.social{background:rgba(116,179,206,.08);border-color:rgba(116,179,206,.25);color:var(--blue)}
+.persona-tag.saver{background:rgba(78,205,196,.08);border-color:rgba(78,205,196,.25);color:var(--teal)}
+
+/* twin avatar visual */
+.twin-avatar-wrap{position:relative;width:200px;height:200px;flex-shrink:0}
+.twin-avatar-ring{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(181,168,245,.25);animation:spin 20s linear infinite}
+.twin-avatar-ring2{position:absolute;inset:12px;border-radius:50%;border:1px dashed rgba(233,196,106,.15);animation:spin 15s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.twin-avatar-core{position:absolute;inset:24px;border-radius:50%;background:radial-gradient(circle at 40% 40%,var(--surface3),var(--surface2));border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
+.twin-avatar-initials{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--text)}
+.twin-avatar-label{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--purple)}
+.twin-orbit-dot{position:absolute;width:10px;height:10px;border-radius:50%;border:2px solid var(--bg)}
+.twin-orbit-dot.d1{background:var(--gold);top:14px;right:30px}
+.twin-orbit-dot.d2{background:var(--green);bottom:20px;left:16px}
+.twin-orbit-dot.d3{background:var(--purple);bottom:30px;right:14px}
+.twin-orbit-dot.d4{background:var(--teal);top:30px;left:10px}
+
+/* ขwขw WRAPPED STATS ขwขw */
+.wrapped-section{padding:40px 48px;border-bottom:1px solid var(--border);opacity:0;animation:fadeUp .5s .15s ease forwards}
+.section-eyebrow{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.section-eyebrow span{height:1px;flex:1;background:var(--border);display:block}
+.wrapped-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.wrapped-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px;position:relative;overflow:hidden;transition:all .2s;cursor:default}
+.wrapped-stat:hover{border-color:var(--border2);transform:translateY(-2px)}
+.ws-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r-lg) var(--r-lg) 0 0}
+.ws-icon{font-size:24px;margin-bottom:12px}
+.ws-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:500;margin-bottom:6px}
+.ws-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;letter-spacing:-1px;line-height:1;margin-bottom:4px}
+.ws-comparison{font-size:12px;color:var(--muted);line-height:1.4;margin-top:8px}
+.ws-comparison .better{color:var(--green);font-weight:500}
+.ws-comparison .worse{color:var(--red);font-weight:500}
+.ws-comparison .neutral{color:var(--gold);font-weight:500}
+.ws-percentile{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;margin-top:8px}
+
+/* ขwขw ADVISOR CHAT ขwขw */
+.advisor-section{padding:40px 48px;border-bottom:1px solid var(--border);opacity:0;animation:fadeUp .5s .2s ease forwards}
+.advisor-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.advisor-title-wrap{display:flex;align-items:center;gap:14px}
+.advisor-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,rgba(181,168,245,.3),rgba(116,179,206,.3));border:1px solid rgba(181,168,245,.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.advisor-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;letter-spacing:-.3px}
+.advisor-role{font-size:12px;color:var(--purple);font-weight:500}
+.advisor-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.status-live{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+
+/* chat messages */
+.chat-window{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;max-height:560px}
+.chat-messages{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px}
+.msg{display:flex;gap:12px;max-width:88%;animation:msgIn .3s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.msg.user{flex-direction:row-reverse;align-self:flex-end}
+.msg-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:2px}
+.msg-avatar.ai{background:linear-gradient(135deg,rgba(181,168,245,.2),rgba(116,179,206,.2));border:1px solid rgba(181,168,245,.2)}
+.msg-avatar.user{background:linear-gradient(135deg,var(--gold),var(--gold2));font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#0c0c0e}
+.msg-bubble{padding:13px 16px;border-radius:16px;font-size:13px;line-height:1.6}
+.msg-bubble.ai{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:4px}
+.msg-bubble.user{background:rgba(233,196,106,.12);border:1px solid rgba(233,196,106,.2);color:var(--text);border-bottom-right-radius:4px}
+.msg-bubble strong{font-weight:500;color:var(--text)}
+.msg-bubble .stat-inline{color:var(--gold);font-weight:600}
+.msg-bubble .stat-green{color:var(--green);font-weight:600}
+.msg-bubble .stat-red{color:var(--red);font-weight:600}
+.msg-bubble .stat-blue{color:var(--blue);font-weight:600}
+.msg-bubble ul{margin:8px 0 0 16px;display:flex;flex-direction:column;gap:4px}
+.msg-bubble li{color:var(--muted)}
+.msg-bubble li strong{color:var(--text)}
+.msg-time{font-size:10px;color:var(--faint);margin-top:4px;padding:0 4px}
+.msg.user .msg-time{text-align:right}
+
+/* typing indicator */
+.typing-indicator{display:flex;align-items:center;gap:4px;padding:12px 16px}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:typingDot 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes typingDot{0%,80%,100%{transform:scale(1);opacity:.5}40%{transform:scale(1.2);opacity:1}}
+
+/* suggested prompts */
+.suggested-prompts{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap}
+.prompt-chip{font-size:12px;font-weight:500;padding:6px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;font-family:'Instrument Sans',sans-serif}
+.prompt-chip:hover{border-color:var(--purple);color:var(--purple);background:rgba(181,168,245,.06)}
+
+/* chat input */
+.chat-input-row{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center}
+.chat-input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:40px;padding:10px 18px;color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:13px;outline:none;transition:border-color .15s}
+.chat-input:focus{border-color:var(--purple)}
+.chat-input::placeholder{color:var(--faint)}
+.send-btn{width:38px;height:38px;border-radius:50%;background:var(--purple);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.send-btn:hover{background:#9f93e8;transform:scale(1.05)}
+.send-btn svg{width:16px;height:16px;stroke:#0c0c0e;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* ขwขw BILLS SECTION ขwขw */
+.bills-section{padding:40px 48px;border-bottom:1px solid var(--border);opacity:0;animation:fadeUp .5s .25s ease forwards}
+.bills-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:4px}
+.bill-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;display:flex;align-items:flex-start;gap:14px;transition:all .2s;cursor:pointer;position:relative;overflow:hidden}
+.bill-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.bill-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
+.bill-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.bill-info{flex:1;min-width:0}
+.bill-name{font-size:14px;font-weight:500;color:var(--text);margin-bottom:2px}
+.bill-meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+.bill-amount{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.5px}
+.bill-next{font-size:11px;color:var(--muted);margin-top:2px}
+.bill-status-dot{width:7px;height:7px;border-radius:50%;position:absolute;top:16px;right:16px}
+.bill-status-dot.paid{background:var(--green)}
+.bill-status-dot.upcoming{background:var(--gold);animation:pulse 2s infinite}
+.bill-status-dot.overdue{background:var(--red);animation:pulse 1s infinite}
+.bills-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.bs-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px}
+.bs-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:500;margin-bottom:6px}
+.bs-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;letter-spacing:-.5px}
+.add-bill-card{background:var(--surface);border:1px dashed var(--border2);border-radius:var(--r-lg);padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .2s;min-height:100px}
+.add-bill-card:hover{border-color:var(--gold);background:rgba(233,196,106,.03)}
+.add-bill-plus{font-size:22px;color:var(--faint);font-weight:300}
+.add-bill-label{font-size:13px;color:var(--muted);font-weight:500}
+
+/* ขwขw TWIN COMPARISON ขwขw */
+.twin-comparison{padding:40px 48px;opacity:0;animation:fadeUp .5s .3s ease forwards}
+.comparison-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px}
+.comp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px}
+.comp-header{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.comp-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px}
+.comp-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;letter-spacing:-.3px}
+.comp-sub{font-size:12px;color:var(--muted)}
+.comp-rows{display:flex;flex-direction:column;gap:10px}
+.comp-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center}
+.comp-cat{font-size:13px;color:var(--muted)}
+.comp-you{font-family:'Syne',sans-serif;font-size:14px;font-weight:600}
+.comp-avg{font-size:12px;color:var(--faint);text-align:right}
+.comp-diff{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px}
+.diff-over{background:rgba(231,111,81,.1);color:var(--red)}
+.diff-under{background:rgba(82,183,136,.1);color:var(--green)}
+
+/* radar chart */
+.radar-wrap{position:relative;height:260px;margin-top:8px}
+
+/* modals */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;align-items:center;justify-content:center}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:24px;padding:32px;animation:modalIn .25s cubic-bezier(.22,1,.36,1)}
+@keyframes modalIn{from{opacity:0;transform:scale(.94) translateY(12px)}to{opacity:1;transform:none}}
+.modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.4px;margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:22px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.field input,.field select{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:14px;outline:none;transition:border-color .15s;width:100%}
+.field input:focus,.field select:focus{border-color:var(--gold)}
+.field select option{background:var(--surface2)}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:18px;border-top:1px solid var(--border)}
+.btn-ghost{padding:10px 20px;border-radius:40px;font-size:13px;font-weight:500;border:1px solid var(--border2);background:none;color:var(--muted);cursor:pointer;transition:all .15s;font-family:'Instrument Sans',sans-serif}
+.btn-ghost:hover{color:var(--text);background:var(--surface2)}
+.btn-primary{padding:10px 24px;border-radius:40px;font-size:13px;font-weight:600;border:none;background:var(--gold);color:#0c0c0e;cursor:pointer;transition:all .15s;font-family:'Instrument Sans',sans-serif}
+.btn-primary:hover{background:#d4af5a}
+.emoji-picker-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
+.ep-btn{font-size:20px;width:38px;height:38px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .15s}
+.ep-btn:hover,.ep-btn.active{border-color:var(--gold);background:rgba(233,196,106,.1)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+</style>
 </head>
 <body>
-  <h1>Hello, my app is working</h1>
-  <p>This is my first GitHub Pages website.</p>
+<div class="shell">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">R</div>
+  <button class="nav-btn" title="Dashboard">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+  </button>
+  <button class="nav-btn" title="Spending">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+  </button>
+  <button class="nav-btn" title="Analytics">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+  </button>
+  <button class="nav-btn" title="AI Hub">
+    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+  </button>
+  <button class="nav-btn active" title="Financial Twin">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="19" cy="11" r="3" fill="none"/><path d="M22 14a5 5 0 0 0-6 0" stroke-dasharray="2 2"/></svg>
+  </button>
+  <div class="sidebar-bottom">
+    <button class="nav-btn" title="Settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+    <div class="avatar">AK</div>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- ๙๙๙๙ TWIN HERO ๙๙๙๙ -->
+  <div class="twin-hero">
+    <div class="twin-hero-bg">
+      <div class="twin-hero-orb o1"></div>
+      <div class="twin-hero-orb o2"></div>
+      <div class="twin-hero-orb o3"></div>
+    </div>
+    <div class="twin-eyebrow"><span class="twin-eyebrow-dot"></span> AI Financial Twin กP Built from 24 receipts</div>
+    <div class="twin-hero-content">
+      <div>
+        <div class="twin-title">Meet your <span class="name">financial self</span>,<br><span class="type">Alex</span></div>
+        <div class="twin-subtitle">
+          Your spending model has been built. You behave similarly to <em>24% of university students in London</em> กX but with distinct patterns that set you apart. You're a <em>home cook who impulse-shops</em> and a <em>social spender</em> who's quietly building savings.
+        </div>
+        <div class="twin-persona-tags">
+          <div class="persona-tag impulse">⚡ Impulse shopper กP 3กั / month</div>
+          <div class="persona-tag homecook">�� Home cook กP 67% meals at home</div>
+          <div class="persona-tag social">�� Social spender กP dining out weekly</div>
+          <div class="persona-tag saver">�� Emerging saver กP saving 13%</div>
+        </div>
+      </div>
+      <div class="twin-avatar-wrap">
+        <div class="twin-avatar-ring"></div>
+        <div class="twin-avatar-ring2"></div>
+        <div class="twin-avatar-core">
+          <div class="twin-avatar-initials">AK</div>
+          <div class="twin-avatar-label">Financial Twin</div>
+        </div>
+        <div class="twin-orbit-dot d1"></div>
+        <div class="twin-orbit-dot d2"></div>
+        <div class="twin-orbit-dot d3"></div>
+        <div class="twin-orbit-dot d4"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ๙๙๙๙ WRAPPED STATS ๙๙๙๙ -->
+  <div class="wrapped-section">
+    <div class="section-eyebrow">Your year in numbers <span></span></div>
+    <div class="wrapped-grid">
+      <div class="wrapped-stat">
+        <div class="ws-accent" style="background:var(--gold)"></div>
+        <div class="ws-icon">��</div>
+        <div class="ws-label">Top category</div>
+        <div class="ws-value" style="color:var(--gold)">Shopping</div>
+        <div class="ws-comparison">You spend <span class="worse">£333/mo</span> vs the average <span class="neutral">£198/mo</span> for students in London</div>
+        <div class="ws-percentile" style="background:rgba(231,111,81,.1);color:var(--red)">Top 28% spender</div>
+      </div>
+      <div class="wrapped-stat">
+        <div class="ws-accent" style="background:var(--green)"></div>
+        <div class="ws-icon">��</div>
+        <div class="ws-label">Home cooking rate</div>
+        <div class="ws-value" style="color:var(--green)">67%</div>
+        <div class="ws-comparison">Similar users average <span class="better">51%</span>. You cook at home significantly more กX <span class="better">saving ~£160/month</span> compared to peers</div>
+        <div class="ws-percentile" style="background:rgba(82,183,136,.1);color:var(--green)">Top 15% healthiest</div>
+      </div>
+      <div class="wrapped-stat">
+        <div class="ws-accent" style="background:var(--blue)"></div>
+        <div class="ws-icon">��</div>
+        <div class="ws-label">Savings rate</div>
+        <div class="ws-value" style="color:var(--blue)">13%</div>
+        <div class="ws-comparison">Average for your cohort is <span class="better">8%</span>. You're <span class="better">above average</span>. Users who hit 20% by age 22 retire <span class="better">6 years earlier.</span></div>
+        <div class="ws-percentile" style="background:rgba(116,179,206,.1);color:var(--blue)">Top 35% savers</div>
+      </div>
+      <div class="wrapped-stat">
+        <div class="ws-accent" style="background:var(--purple)"></div>
+        <div class="ws-icon">⚡</div>
+        <div class="ws-label">Impulse purchases</div>
+        <div class="ws-value" style="color:var(--purple)">3กั/mo</div>
+        <div class="ws-comparison">You make <span class="worse">3 unplanned purchases/month</span> averaging £74 each. Users with <span class="neutral">similar habits</span> save £180/mo by adding a 24hr waiting rule</div>
+        <div class="ws-percentile" style="background:rgba(181,168,245,.1);color:var(--purple)">Similar to 24% of users</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ๙๙๙๙ AI ADVISOR CHAT ๙๙๙๙ -->
+  <div class="advisor-section">
+    <div class="advisor-header">
+      <div class="advisor-title-wrap">
+        <div class="advisor-avatar">��</div>
+        <div>
+          <div class="advisor-name">Claude กP Financial Advisor</div>
+          <div class="advisor-role">Powered by your spending data กP not a generic chatbot</div>
+        </div>
+      </div>
+      <div class="advisor-status"><div class="status-live"></div> Live กP knows your finances</div>
+    </div>
+
+    <div class="chat-window">
+      <div class="chat-messages" id="chatMessages">
+
+        <!-- Opening message from AI -->
+        <div class="msg ai">
+          <div class="msg-avatar ai">��</div>
+          <div>
+            <div class="msg-bubble ai">
+              Hi Alex กX I've analysed your last 24 receipts and built your financial model. A few things I've noticed that most people don't realise about themselves:<br><br>
+              You're actually a <strong>great cook</strong> กX 67% home cooking puts you in the top 15% of people your age. That's saving you roughly <span class="stat-green">£160/month</span> vs peers who eat out more. Credit where it's due.<br><br>
+              However, I noticed a pattern: your big shopping purchases (<span class="stat-inline">Nike trainers + ASOS in the same week</span>) tend to happen on <strong>Fridays</strong>, often within 30 minutes of each other. That's a classic impulse clustering pattern. A simple 24-hour rule on any purchase over <span class="stat-inline">£40</span> would likely cut your shopping spend by <span class="stat-green">£80กV100/month</span>.<br><br>
+              What would you like to dig into?
+            </div>
+            <div class="msg-time">Today กP just now</div>
+          </div>
+        </div>
+
+        <!-- User question 1 -->
+        <div class="msg user">
+          <div class="msg-avatar user">AK</div>
+          <div>
+            <div class="msg-bubble user">Am I on track for my Lisbon trip goal?</div>
+            <div class="msg-time">just now</div>
+          </div>
+        </div>
+
+        <!-- AI response 1 -->
+        <div class="msg ai">
+          <div class="msg-avatar ai">��</div>
+          <div>
+            <div class="msg-bubble ai">
+              Honestly? <strong>Not quite</strong> กX but it's fixable. Here's where you stand:<br><br>
+              You need <span class="stat-red">£552 more</span> by August, which is about 10 weeks away. That means saving <span class="stat-inline">£55/week</span>. Right now you're saving closer to £35/week based on your patterns.<br><br>
+              The gap is £20/week. Here's exactly where that £20 comes from based on <em>your specific receipts</em>:<br><br>
+              <ul>
+                <li><strong>Skip one Deliveroo order/week</strong> ก๗ saves £12.50 on average</li>
+                <li><strong>One less coffee out</strong> ก๗ saves £5.40 (you go to Costa 3กV4กั/week)</li>
+                <li><strong>Lidl instead of Tesco once</strong> ก๗ saves £19 on a comparable basket</li>
+              </ul><br>
+              Do any two of those and you'll hit Lisbon with money to spare. ����
+            </div>
+            <div class="msg-time">just now</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Suggested prompts -->
+      <div class="suggested-prompts" id="suggestedPrompts">
+        <div class="prompt-chip" onclick="sendPrompt(this)">How do I compare to people like me?</div>
+        <div class="prompt-chip" onclick="sendPrompt(this)">What's my worst financial habit?</div>
+        <div class="prompt-chip" onclick="sendPrompt(this)">How much could I save by December?</div>
+        <div class="prompt-chip" onclick="sendPrompt(this)">Am I spending too much on food?</div>
+        <div class="prompt-chip" onclick="sendPrompt(this)">Give me a 30-day saving challenge</div>
+      </div>
+
+      <!-- Input -->
+      <div class="chat-input-row">
+        <input class="chat-input" id="chatInput" placeholder="Ask your financial advisor anythingกK" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="send-btn" onclick="sendChat()">
+          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ๙๙๙๙ BILLS & SUBSCRIPTIONS ๙๙๙๙ -->
+  <div class="bills-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div class="section-eyebrow" style="margin-bottom:8px">Fixed outgoings <span></span></div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.4px">Bills & subscriptions</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px">Known monthly commitments กP AI watches for price rises</div>
+      </div>
+      <button class="btn-ghost" onclick="document.getElementById('addBillModal').classList.add('open')" style="display:flex;align-items:center;gap:6px;font-size:13px">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add bill
+      </button>
+    </div>
+
+    <div class="bills-summary">
+      <div class="bs-card">
+        <div class="bs-label">Total committed monthly</div>
+        <div class="bs-val" style="color:var(--red)">£387.93</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">18.5% of £2,100 income</div>
+      </div>
+      <div class="bs-card">
+        <div class="bs-label">Subscriptions only</div>
+        <div class="bs-val" style="color:var(--purple)">£52.93</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">6 active กP 1 unused</div>
+      </div>
+      <div class="bs-card">
+        <div class="bs-label">Next bill due</div>
+        <div class="bs-val" style="color:var(--gold)">Jun 7</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Gym กX £24.99 กP in 5 days</div>
+      </div>
+    </div>
+
+    <div class="bills-grid" id="billsGrid">
+      <div class="bill-card" style="border-color:rgba(231,111,81,.2)" onclick="editBill('car')">
+        <div class="bill-status-dot paid"></div>
+        <div class="bill-icon" style="background:rgba(231,111,81,.1)">��</div>
+        <div class="bill-info">
+          <div class="bill-name">Car insurance</div>
+          <div class="bill-meta">Admiral กP Annual กP Direct debit</div>
+          <div class="bill-amount" style="color:var(--red)">£89.00</div>
+          <div class="bill-next">Paid Jun 1 กP Next: Jul 1</div>
+        </div>
+      </div>
+      <div class="bill-card" style="border-color:rgba(82,183,136,.2)" onclick="editBill('gym')">
+        <div class="bill-status-dot upcoming"></div>
+        <div class="bill-icon" style="background:rgba(82,183,136,.1)">��️</div>
+        <div class="bill-info">
+          <div class="bill-name">PureGym membership</div>
+          <div class="bill-meta">Monthly กP Direct debit</div>
+          <div class="bill-amount" style="color:var(--green)">£24.99</div>
+          <div class="bill-next">Due Jun 7 กP in 5 days</div>
+        </div>
+      </div>
+      <div class="bill-card" onclick="editBill('phone')">
+        <div class="bill-status-dot paid"></div>
+        <div class="bill-icon" style="background:rgba(116,179,206,.1)">��</div>
+        <div class="bill-info">
+          <div class="bill-name">Phone bill</div>
+          <div class="bill-meta">EE กP Monthly กP 18mo contract</div>
+          <div class="bill-amount" style="color:var(--blue)">£35.00</div>
+          <div class="bill-next">Paid Jun 1 กP Next: Jul 1</div>
+        </div>
+      </div>
+      <div class="bill-card" onclick="editBill('netflix')">
+        <div class="bill-status-dot paid"></div>
+        <div class="bill-icon" style="background:rgba(231,111,81,.08)">��</div>
+        <div class="bill-info">
+          <div class="bill-name">Netflix</div>
+          <div class="bill-meta">Standard กP Monthly</div>
+          <div class="bill-amount">£10.99</div>
+          <div class="bill-next">Paid Jun 3 กP Next: Jul 3</div>
+        </div>
+      </div>
+      <div class="bill-card" onclick="editBill('spotify')">
+        <div class="bill-status-dot paid"></div>
+        <div class="bill-icon" style="background:rgba(82,183,136,.08)">��</div>
+        <div class="bill-info">
+          <div class="bill-name">Spotify Premium</div>
+          <div class="bill-meta">Student plan กP Monthly</div>
+          <div class="bill-amount">£5.99</div>
+          <div class="bill-next">Paid Jun 3 กP Next: Jul 3</div>
+        </div>
+      </div>
+      <div class="bill-card" style="border-color:rgba(181,168,245,.2)" onclick="editBill('internet')">
+        <div class="bill-status-dot upcoming"></div>
+        <div class="bill-icon" style="background:rgba(181,168,245,.1)">��</div>
+        <div class="bill-info">
+          <div class="bill-name">Home broadband</div>
+          <div class="bill-meta">BT กP Monthly กP Split 3 ways</div>
+          <div class="bill-amount" style="color:var(--purple)">£16.67</div>
+          <div class="bill-next">Due Jun 12 กP your share</div>
+        </div>
+      </div>
+      <div class="bill-card" onclick="editBill('amazon')">
+        <div class="bill-status-dot paid"></div>
+        <div class="bill-icon" style="background:rgba(233,196,106,.08)">��</div>
+        <div class="bill-info">
+          <div class="bill-name">Amazon Prime Student</div>
+          <div class="bill-meta">Annual กP 50% student discount</div>
+          <div class="bill-amount" style="color:var(--gold)">£4.99</div>
+          <div class="bill-next">Paid May 14 กP Annual</div>
+        </div>
+      </div>
+      <div class="bill-card" style="border-color:rgba(231,111,81,.15)">
+        <div class="bill-status-dot" style="background:var(--gold);animation:pulse 1.5s infinite"></div>
+        <div class="bill-icon" style="background:rgba(244,162,97,.08)">⚠️</div>
+        <div class="bill-info">
+          <div class="bill-name" style="color:var(--gold2)">Adobe Creative Cloud</div>
+          <div class="bill-meta" style="color:var(--red)">AI flagged: unused for 47 days</div>
+          <div class="bill-amount" style="color:var(--gold2)">£19.99</div>
+          <div class="bill-next">Consider cancelling กX save £240/yr</div>
+        </div>
+      </div>
+      <div class="add-bill-card" onclick="document.getElementById('addBillModal').classList.add('open')">
+        <div class="add-bill-plus">กฯ</div>
+        <div class="add-bill-label">Add a bill or subscription</div>
+      </div>
+    </div>
+
+    <!-- AI observation -->
+    <div style="margin-top:16px;background:var(--surface2);border:1px solid rgba(181,168,245,.15);border-left:3px solid var(--purple);border-radius:12px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start">
+      <div style="font-size:20px;flex-shrink:0">��</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">Advisor notice</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.55">You have <strong style="color:var(--text)">£52.93/month</strong> in subscriptions. Adobe Creative Cloud hasn't been used in 47 days กX cancelling it would save you <strong style="color:var(--green)">£240/year</strong>. Also, your EE contract ends in 4 months กX similar plans on <strong style="color:var(--text)">iD Mobile or SMARTY</strong> cost £18กV22/month for the same data. That's a potential saving of <strong style="color:var(--green)">£156กV204/year</strong>.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ๙๙๙๙ PEER COMPARISON ๙๙๙๙ -->
+  <div class="twin-comparison">
+    <div class="section-eyebrow" style="padding:0 0 20px">How you compare <span></span></div>
+    <div class="comparison-grid">
+      <div class="comp-card">
+        <div class="comp-header">
+          <div class="comp-avatar" style="background:rgba(181,168,245,.15)">��</div>
+          <div>
+            <div class="comp-title">vs. Students like you</div>
+            <div class="comp-sub">London กP 19กV22 กP similar income</div>
+          </div>
+        </div>
+        <div class="comp-rows">
+          <div class="comp-row"><span class="comp-cat">�� Food total</span><span class="comp-you">£730</span><div style="text-align:right"><span class="comp-diff diff-under">−£90</span><div class="comp-avg">avg £820</div></div></div>
+          <div class="comp-row"><span class="comp-cat">�� Shopping</span><span class="comp-you">£333</span><div style="text-align:right"><span class="comp-diff diff-over">+£135</span><div class="comp-avg">avg £198</div></div></div>
+          <div class="comp-row"><span class="comp-cat">�� Transport</span><span class="comp-you">£185</span><div style="text-align:right"><span class="comp-diff diff-under">−£22</span><div class="comp-avg">avg £207</div></div></div>
+          <div class="comp-row"><span class="comp-cat">�� Entertainment</span><span class="comp-you">£89</span><div style="text-align:right"><span class="comp-diff diff-under">−£43</span><div class="comp-avg">avg £132</div></div></div>
+          <div class="comp-row"><span class="comp-cat">�� Savings rate</span><span class="comp-you" style="color:var(--green)">13%</span><div style="text-align:right"><span class="comp-diff diff-under">+5%</span><div class="comp-avg">avg 8%</div></div></div>
+        </div>
+      </div>
+
+      <div class="comp-card">
+        <div class="comp-header">
+          <div class="comp-avatar" style="background:rgba(233,196,106,.15)">��</div>
+          <div>
+            <div class="comp-title">Your spending fingerprint</div>
+            <div class="comp-sub">vs. your personal average กP last 3 months</div>
+          </div>
+        </div>
+        <div class="radar-wrap">
+          <canvas id="radarChart" role="img" aria-label="Spending fingerprint radar chart comparing current month to 3-month average"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- ๙๙๙๙๙๙๙๙ ADD BILL MODAL ๙๙๙๙๙๙๙๙ -->
+<div class="modal-backdrop" id="addBillModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="width:460px;max-width:95vw">
+    <div class="modal-title">Add a bill or subscription</div>
+    <div class="modal-sub">AI will track it and alert you to price rises or unused services</div>
+    <div class="emoji-picker-grid" id="billEmojiPicker">
+      <button class="ep-btn active" onclick="selectBillEmoji(this)">��</button>
+      <button class="ep-btn" onclick="selectBillEmoji(this)">��</button>
+      <button class="ep-btn" onclick="selectBillEmoji(this)">��</button>
+      <button class="ep-btn" onclick="selectBillEmoji(this)">��️</button>
+      <button class="ep-btn" onclick="selectBillEmoji(this)">��</button>
+      <button class="ep-btn" onclick="selectBillEmoji(this)">��</button>
+      <button class="ep-btn" onclick="selectBillEmoji(this)">��</button>
+      <button class="ep-btn" onclick="selectBillEmoji(this)">��</button>
+      <button class="ep-btn" onclick="selectBillEmoji(this)">⚡</button>
+      <button class="ep-btn" onclick="selectBillEmoji(this)">��</button>
+      <button class="ep-btn" onclick="selectBillEmoji(this)">��</button>
+      <button class="ep-btn" onclick="selectBillEmoji(this)">��</button>
+    </div>
+    <div class="field"><label>Name</label><input type="text" id="billName" placeholder="e.g. Gym membership, NetflixกK"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="field"><label>Amount (£)</label><input type="number" id="billAmount" placeholder="0.00" step="0.01" min="0"></div>
+      <div class="field"><label>Frequency</label>
+        <select id="billFreq">
+          <option>Monthly</option><option>Annual</option><option>Weekly</option><option>Quarterly</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="field"><label>Provider</label><input type="text" id="billProvider" placeholder="e.g. EE, SpotifyกK"></div>
+      <div class="field"><label>Next due date</label><input type="date" id="billDate"></div>
+    </div>
+    <div class="field"><label>Category</label>
+      <select id="billCat">
+        <option>Subscription</option><option>Insurance</option><option>Utility</option>
+        <option>Phone</option><option>Internet</option><option>Fitness</option><option>Other</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="document.getElementById('addBillModal').classList.remove('open')">Cancel</button>
+      <button class="btn-primary" onclick="addBill()">Add bill</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ขwขw Radar chart ขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขw
+Chart.defaults.color='rgba(122,120,112,.85)';
+Chart.defaults.font.family="'Instrument Sans',sans-serif";
+new Chart(document.getElementById('radarChart').getContext('2d'),{
+  type:'radar',
+  data:{
+    labels:['Food','Shopping','Transport','Entertainment','Health','Savings'],
+    datasets:[
+      {label:'This month',data:[73,83,89,67,95,65],borderColor:'#b5a8f5',backgroundColor:'rgba(181,168,245,.12)',borderWidth:2,pointBackgroundColor:'#b5a8f5',pointRadius:4},
+      {label:'Your 3mo avg',data:[65,58,78,72,80,55],borderColor:'rgba(233,196,106,.5)',backgroundColor:'rgba(233,196,106,.06)',borderWidth:1.5,borderDash:[4,3],pointBackgroundColor:'rgba(233,196,106,.7)',pointRadius:3}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'bottom',labels:{color:'rgba(122,120,112,.8)',font:{size:11},boxWidth:8,padding:12}}},
+    scales:{r:{
+      grid:{color:'rgba(255,255,255,.06)'},
+      angleLines:{color:'rgba(255,255,255,.04)'},
+      ticks:{display:false},
+      pointLabels:{color:'rgba(122,120,112,.8)',font:{size:11}},
+      min:0,max:100
+    }}
+  }
+});
+
+// ขwขw Chat ขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขw
+const aiResponses = {
+  "how do i compare to people like me?": `Based on your financial twin model, here's the honest picture:<br><br>You're in the <span class="stat-green">top 35% for savings rate</span> among 19กV22 year olds in London กX that's genuinely good. Your home cooking habit puts you <span class="stat-green">£160/month ahead</span> of peers on food costs.<br><br>Where you fall behind: shopping spend is <span class="stat-red">£135/month above average</span>. That's the main drag. The peer group that looks most like you (<em>social home-cooks with impulse shopping tendencies</em>) saves an average of £180/month by introducing a spend review every Sunday กX a 10-minute habit that catches unplanned purchases before they compound.`,
+  "what's my worst financial habit?": `No sugar-coating it: <strong>impulse shopping on Fridays.</strong><br><br>I've noticed 3 of your last 4 unplanned purchases happened on a Friday between 6กV9pm. This is a known pattern กX decision fatigue after a work/study week, combined with social browsing. Your average impulse purchase is <span class="stat-red">£74</span>.<br><br>The fix is boring but it works: add items to a wishlist instead of buying immediately. If you still want it next Friday, it wasn't impulse. Research shows this reduces unplanned purchases by <span class="stat-green">40กV60%</span>. You'd save roughly <span class="stat-green">£110/month</span> based on your patterns.`,
+  "how much could i save by december?": `Based on your current trajectory, here's the honest forecast:<br><br><strong>Current saving rate:</strong> £273/month (13%)<br><strong>With the shopping fix:</strong> £373/month<br><strong>With the Lidl switch + Adobe cancel:</strong> £432/month<br><br>That's <span class="stat-green">£2,600กV4,100</span> by December, depending on which changes you make. The single highest-impact move is the shopping impulse rule กX it costs you nothing and gains you the most. Want me to set up a Friday evening spending block reminder?`,
+  "am i spending too much on food?": `Short answer: <strong>no กX you're actually quite efficient.</strong><br><br>Your total food spend (groceries + dining) is <span class="stat-green">£730/month</span>, which is £90 below the average for someone in London your age. More importantly, 67% of that is home cooking vs takeaways กX that ratio is genuinely impressive.<br><br>The one thing I'd flag: you bought from Costa <span class="stat-inline">4กั last week</span> at ~£5.40 each time. That's £86/month on coffee out. A decent stovetop coffee maker costs £25 and pays back in 9 days. Not a lecture กX just the maths.`,
+  "give me a 30-day saving challenge": `Here's your personalised 30-day challenge based on <em>your actual receipts</em> กX not generic advice:<br><br><strong>Week 1:</strong> No unplanned online orders. Deliveroo ban. Estimated save: <span class="stat-green">£37</span><br><strong>Week 2:</strong> Lidl for your big shop instead of Tesco. One batch cook session. Save: <span class="stat-green">£28</span><br><strong>Week 3:</strong> Cancel Adobe (you haven't used it in 47 days). Coffee from home 5 days. Save: <span class="stat-green">£41</span><br><strong>Week 4:</strong> No clothing purchases. Review all subscriptions. Save: <span class="stat-green">£50+</span><br><br><strong>Total 30-day saving potential: <span class="stat-green">£156</span></strong> กX added to your Lisbon fund, that gets you there. Want me to track your progress week by week?`
+};
+
+function sendPrompt(chip) {
+  const text = chip.textContent;
+  chip.remove();
+  appendUserMsg(text);
+  showTyping();
+  setTimeout(()=>{
+    removeTyping();
+    const key = text.toLowerCase().replace(/[?]/g,'');
+    const resp = aiResponses[key] || `That's a great question about your finances. Based on your spending data, I can see some clear patterns กX let me dig into the specifics of what your receipts are telling me about ${text.toLowerCase().replace('?','')}.`;
+    appendAIMsg(resp);
+  }, 1400);
+}
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  appendUserMsg(text);
+  showTyping();
+  setTimeout(()=>{
+    removeTyping();
+    const key = text.toLowerCase().replace(/[?]/g,'');
+    const resp = aiResponses[key] || `Based on your spending data and financial twin profile, here's my take on "<em>${text}</em>":<br><br>Looking at your receipts, I can see this connects to your broader pattern as a home-cook with impulse shopping tendencies. The data suggests the most impactful thing you can do right now is focus on the shopping category กX it's the one area where a small behavioural change creates the biggest financial return given your specific habits. Want me to go deeper on any particular aspect?`;
+    appendAIMsg(resp);
+  }, 1600);
+}
+
+function appendUserMsg(text) {
+  const msgs = document.getElementById('chatMessages');
+  const d = document.createElement('div');
+  d.className = 'msg user';
+  d.innerHTML = `<div class="msg-avatar user">AK</div><div><div class="msg-bubble user">${text}</div><div class="msg-time">just now</div></div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function appendAIMsg(html) {
+  const msgs = document.getElementById('chatMessages');
+  const d = document.createElement('div');
+  d.className = 'msg ai';
+  d.innerHTML = `<div class="msg-avatar ai">��</div><div><div class="msg-bubble ai">${html}</div><div class="msg-time">just now</div></div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('chatMessages');
+  const d = document.createElement('div');
+  d.className = 'msg ai'; d.id = 'typingMsg';
+  d.innerHTML = `<div class="msg-avatar ai">��</div><div class="msg-bubble ai"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typingMsg');
+  if (t) t.remove();
+}
+
+// ขwขw Bill emoji picker ขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขw
+let selectedBillEmoji = '��';
+function selectBillEmoji(btn) {
+  document.querySelectorAll('.ep-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedBillEmoji = btn.textContent;
+}
+
+// ขwขw Add bill ขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขw
+function addBill() {
+  const name = document.getElementById('billName').value;
+  const amount = document.getElementById('billAmount').value;
+  if (!name || !amount) return;
+  const freq = document.getElementById('billFreq').value;
+  const provider = document.getElementById('billProvider').value;
+  const date = document.getElementById('billDate').value;
+  const dateLabel = date ? new Date(date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : 'TBC';
+  const card = document.createElement('div');
+  card.className = 'bill-card';
+  card.style.cssText = 'animation: fadeUp .3s ease';
+  card.innerHTML = `
+    <div class="bill-status-dot upcoming"></div>
+    <div class="bill-icon" style="background:rgba(233,196,106,.08)">${selectedBillEmoji}</div>
+    <div class="bill-info">
+      <div class="bill-name">${name}</div>
+      <div class="bill-meta">${provider||'กX'} กP ${freq}</div>
+      <div class="bill-amount" style="color:var(--gold)">£${parseFloat(amount).toFixed(2)}</div>
+      <div class="bill-next">Next: ${dateLabel}</div>
+    </div>`;
+  document.querySelector('.add-bill-card').before(card);
+  document.getElementById('addBillModal').classList.remove('open');
+  showToast(`✓ "${name}" added กX £${parseFloat(amount).toFixed(2)}/${freq.toLowerCase()}`);
+  document.getElementById('billName').value='';
+  document.getElementById('billAmount').value='';
+  document.getElementById('billProvider').value='';
+  document.getElementById('billDate').value='';
+}
+
+function editBill(id) { showToast('Edit bill กX connect to backend to persist changes'); }
+
+// ขwขw Toast ขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขwขw
+function showToast(msg, isErr=false) {
+  const t=document.createElement('div');t.textContent=msg;
+  Object.assign(t.style,{position:'fixed',bottom:'28px',right:'28px',background:isErr?'rgba(231,111,81,.15)':'rgba(82,183,136,.15)',border:`1px solid ${isErr?'rgba(231,111,81,.3)':'rgba(82,183,136,.3)'}`,color:isErr?'#e76f51':'#52b788',padding:'12px 20px',borderRadius:'12px',fontSize:'13px',fontWeight:'500',zIndex:'999',transition:'all .3s',opacity:'0',transform:'translateY(16px)',fontFamily:"'Instrument Sans',sans-serif"});
+  document.body.appendChild(t);
+  requestAnimationFrame(()=>{t.style.opacity='1';t.style.transform='none';});
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(8px)';setTimeout(()=>t.remove(),300);},3200);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')document.querySelectorAll('.modal-backdrop').forEach(m=>m.classList.remove('open'));
+});
+</script>
 </body>
 </html>
